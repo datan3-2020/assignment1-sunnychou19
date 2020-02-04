@@ -1,8 +1,9 @@
 ---
 title: "Statistical assignment 1"
-author: "[add your name and candidate number here]"
-date: "[add date here]"
+author: "Sunny Chou"
+date: "4/2/2020"
 output: github_document
+md_document
 ---
 
 ```{r setup, include=FALSE}
@@ -15,7 +16,8 @@ In this assignment you will work with the individual level data from wave 8 of t
 
 ```{r}
 library(tidyverse)
-Data <- ...
+getwd()
+Data <- read_tsv('C:/Users/user/Desktop/data/UKDA-6614-tab/tab/ukhls_w8/h_indresp.tab')
 ```
 
 Now you have got your data frame stored as Data. 
@@ -29,8 +31,8 @@ First, you need to select the variables for the analysis. You want to keep the f
 Complete the code below to select those variables from the data frame and save the result.
 
 ```{r}
-Data <- Data %>%
-        select(...)
+Data <- Data %>% select(pidp, h_eumem, h_sex_dv, h_age_dv, h_memorig)
+       
 ```
 
 ## Filter observations (10 points)
@@ -39,7 +41,7 @@ To make nationally representative estimates from the Understanding Society data 
 
 ```{r}
 Data <- Data %>%
-        filter(...)
+        filter(h_memorig == 1)
 ```
 
 ## Recode data (20 points)
@@ -48,13 +50,17 @@ Let us tabulate the variables for EU support, sex, and age.
 
 ```{r}
 table(Data$h_eumem)
+```
+```{r}
+
 table(Data$h_sex_dv)
+
+```
+
+```{r}
 table(Data$h_age_dv)
 ```
 
-You will see that all these variables are numeric. You can learn what the numeric codes mean by checking the codebook here: https://www.understandingsociety.ac.uk/documentation/mainstage/dataset-documentation/datafile/indresp/wave/8 .
-
-We want to do the following:
 
 1) Recode the variable for EU support as binary (1 for Remain, 0 for Leave), coding all types of missing values (including refusals and "don't know") as NA.
 2) Recode sex into a character vector with the values "male" or "female".
@@ -64,12 +70,19 @@ In all cases, we want to create new variables.
 
 ```{r}
 Data <- Data %>%
-        mutate(EU = ...
-      
-        ) %>%
-        mutate(sex = ...) %>%
-        mutate(agegr = ...
-        )
+  
+        mutate(EU = recode(h_eumem, '1' =  '1',
+                           '2'=  '0',
+                           .default = NA_character_)) %>%
+  
+        mutate(sex =  recode (h_sex_dv, '1' = 'Male', '2' = 'Female',.default = NA_character_)) %>%
+  
+        mutate(agegr = case_when(between(h_age_dv, 16,25) ~ '16 to 25',
+                                 between(h_age_dv, 26,40) ~ '26 ro 40',
+                                 between(h_age_dv, 41,55) ~ '41 to 55',
+                                 between(h_age_dv, 56,70) ~ '56 to 70',
+                                 h_age_dv > 70 ~ 'over 70' ))
+        
 
 ```
 
@@ -78,23 +91,34 @@ Data <- Data %>%
 Let us **dplyr** to calculate how many people in the sample supported Remain and Leave, both as absolute numbers and percentages.
 
 ```{r}
-Data %>%
+library(dplyr)
+
+Data %>%   count(EU) %>% mutate(perc = n / sum(n) * 100)
+  
         ...
         
 ```
 
-Write a couple of sentences with the interpretation of this result. How this compares with the result of the 2016 referendum? Why?
+How this compares with the result of the 2016 referendum? Why?
 
+The results of the 2016 referendum are 52% for leave and 48 % for remain, with leave scoring 4% more than remain ; the results here are 40.7% for leave and 48.4% for remain, with remain scoring 7.7% greater than leave.  Possible reasons are that the results are within the confidence interval of the population, where results could reasonably vary between a certain range within a number of samples. The difference between the two could also be accounted by the time passed, thus post-referendum information received and consequences contemplated. 
+ 
 ## Summarise data by sex and age (30 points)
 
 Now let us look at the support for Leave and Remain by sex and age. Use your newly created variables.
 
 
 ```{r}
-Data %>%
+Data$EU<-as.numeric(Data$EU)
+
+Data %>% select(EU,sex, agegr) %>% group_by(sex,agegr) %>% summarise(propEU = mean(EU, na.rm = TRUE) * 100)
+    
+
+tapply(Data, c(Data$EU,sex,agegr),mean )
         ...
         
 ```
 
+Youngness correlated to likeliness to support remain, female more likely than male in almost each age group. 
 
 Write a couple of sentences interpreting your results.
